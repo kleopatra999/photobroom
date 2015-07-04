@@ -27,7 +27,7 @@ conn.isolation_level = None
 c = conn.cursor()
 fp = open("script.bat", "w")
 
-for row in c.execute('SELECT sha FROM photos GROUP BY sha'):
+for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'):
     sha = row[0]
     c2 = conn.cursor()
     
@@ -58,10 +58,10 @@ for row in c.execute('SELECT sha FROM photos GROUP BY sha'):
         file = re.sub('/', '\\\\', file)
         dotpos = file.rfind('.')
         if dotpos > 0:
-            suffix = file[dotpos+1:]
+            suffix = file[dotpos:]
         else:
             suffix = ""
-        fp.write('MOVE "{0}" Temp\\{1}.{2}\n'.format(file,sha, suffix))
+        fp.write('MOVE "{0}" Temp\\{1}{2}\n'.format(file,sha, suffix))
     fp.write("\n")
 
 

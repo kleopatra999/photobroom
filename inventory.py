@@ -4,6 +4,25 @@ import sys,os,stat
 import hashlib
 import sqlite3
 
+def create_schema(dbconn):
+    sql = """
+DROP TABLE IF EXISTS photos;
+DROP TABLE IF EXISTS directories;
+
+CREATE TABLE directories (
+    path varchar UNIQUE,
+    keep     BOOLEAN
+);
+
+CREATE TABLE photos (
+    sha    CHAR(40) NOT NULL,
+    diridx  int, -- rowid from directories
+    filename VARCHAR(4096) NOT NULL
+);
+    """
+    cursor = dbconn.cursor()
+    cursor.executescript(sql)
+
 def add_to_db(cursor, sha, dir, file):
     sql = 'INSERT OR IGNORE INTO directories VALUES(?, ?)'
     cursor.execute(sql, (dir, 0))
@@ -23,7 +42,7 @@ def print_hash(cursor, dir, file):
             buf = fp.read(4096)
 
     str = m.hexdigest()
-    print str + " " + path
+    # print str + " " + path
     add_to_db(cursor, str, dir, file)
 
 def walktree(cursor, dir):
@@ -33,7 +52,7 @@ def walktree(cursor, dir):
         path = os.path.join(dir, name)
         mode = os.lstat(path).st_mode
         if stat.S_ISDIR(mode):
-            walktree(path)
+            walktree(cursor, path)
         elif stat.S_ISREG(mode):
             print_hash(cursor, dir, name)
         
@@ -44,7 +63,7 @@ if len(sys.argv) != 2:
 topdir = sys.argv[1]
 
 conn = sqlite3.connect("db")
-conn.isolation_level = None
 cursor = conn.cursor()
+create_schema(conn)
 walktree(cursor, topdir)
 conn.commit()
