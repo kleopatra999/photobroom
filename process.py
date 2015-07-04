@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import sqlite3
-import re
+import re, os
 
 def get_keepdir_idx(dirs):
     idx = -1
@@ -30,7 +30,7 @@ fp = open("script.bat", "w")
 for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'):
     sha = row[0]
     c2 = conn.cursor()
-    
+
     files = []
     dirs = []
     keepidx = -1
@@ -38,12 +38,12 @@ for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'
     i = 0
     for subrow in c2.execute(sql, (sha,)):
         [filename,path,keep] = subrow
-        files.append(path + "/" + filename)
+        files.append(os.path.join(path, filename))
         dirs.append(path)
         if keep == 1:
             keepidx = i
         i = i + 1
-    
+
     if keepidx == -1:
         keepidx = get_keepdir_idx(files)
         set_keepdir(c2, dirs[keepidx])
@@ -53,9 +53,6 @@ for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'
     del dirs[keepidx]
     fp.write("REM Original:" + kept + "\n")
     for file in files:
-        # MOVE "/mnt/Windows/Users/Sandeep/My Documents/My Pictures/2009/Jun/IMG_1058.JPG" Temp\000da5ab30312af3176e38cc03b292e43c524495
-        file = re.sub('/mnt/Windows/Users/Sandeep/', '', file)
-        file = re.sub('/', '\\\\', file)
         dotpos = file.rfind('.')
         if dotpos > 0:
             suffix = file[dotpos:]
@@ -66,4 +63,4 @@ for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'
 
 
 fp.close()
-  
+
