@@ -2,19 +2,31 @@
 
 import sys,os,stat
 import hashlib
+import sqlite3
 
-def print_hash(file):
+def add_to_db(cursor, sha, dir, file):
+    sql = 'INSERT OR IGNORE INTO directories VALUES(?, ?)'
+    cursor.execute(sql, (dir, 0))
+
+    diridx_sql = 'SELECT directories.rowid FROM directories WHERE path = ?'
+    sql = 'INSERT INTO photos VALUES(?, ({0}), ?)'.format(diridx_sql)
+    cursor.execute(sql, (sha, dir, file))
+
+
+def print_hash(cursor, dir, file):
+    path = os.path.join(dir, file)
     m = hashlib.sha224()
-    with open(file) as fp:
+    with open(path) as fp:
         buf = fp.read(4096)
         while len(buf) > 0:
             m.update(buf)
             buf = fp.read(4096)
 
     str = m.hexdigest()
-    print str + " " + file
+    print str + " " + path
+    add_to_db(cursor, str, dir, file)
 
-def walktree(dir):
+def walktree(cursor, dir):
     names = os.listdir(dir)
 
     for name in names:
@@ -23,7 +35,7 @@ def walktree(dir):
         if stat.S_ISDIR(mode):
             walktree(path)
         elif stat.S_ISREG(mode):
-            print_hash(path)
+            print_hash(cursor, dir, name)
         
 
 if len(sys.argv) != 2:
@@ -31,4 +43,8 @@ if len(sys.argv) != 2:
 
 topdir = sys.argv[1]
 
-walktree(topdir)
+conn = sqlite3.connect("db")
+conn.isolation_level = None
+cursor = conn.cursor()
+walktree(cursor, topdir)
+conn.commit()
