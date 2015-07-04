@@ -1,12 +1,19 @@
 #!/usr/bin/python
+
 import sqlite3
+import re
 
 def get_keepdir_idx(dirs):
-    for dir in dirs:
-        print dir
-    choice = raw_input("Which one is original: ")
-    idx = int(choice)
-    # Validate input (FIXME)
+    idx = -1
+    print "=============================================================="
+    while (idx < 0 or idx >= len(dirs)):
+        i = 0
+        for dir in dirs:
+            print i, ":", dir
+            i = i + 1
+
+        choice = raw_input("Keepdir: ")
+        idx = int(choice)
     return idx
 
 def set_keepdir(cursor, path):
@@ -18,7 +25,7 @@ conn = sqlite3.connect("db")
 conn.isolation_level = None
 
 c = conn.cursor()
-fp = open("script.sh", "w")
+fp = open("script.bat", "w")
 
 for row in c.execute('SELECT sha FROM photos GROUP BY sha'):
     sha = row[0]
@@ -44,9 +51,17 @@ for row in c.execute('SELECT sha FROM photos GROUP BY sha'):
     kept =  files[keepidx]
     del files[keepidx]
     del dirs[keepidx]
-    fp.write("# Original:"+ kept + "\n")
+    fp.write("REM Original:" + kept + "\n")
     for file in files:
-        fp.write("DEL " + file + "\n")
+        # MOVE "/mnt/Windows/Users/Sandeep/My Documents/My Pictures/2009/Jun/IMG_1058.JPG" Temp\000da5ab30312af3176e38cc03b292e43c524495
+        file = re.sub('/mnt/Windows/Users/Sandeep/', '', file)
+        file = re.sub('/', '\\\\', file)
+        dotpos = file.rfind('.')
+        if dotpos > 0:
+            suffix = file[dotpos+1:]
+        else:
+            suffix = ""
+        fp.write('MOVE "{0}" Temp\\{1}.{2}\n'.format(file,sha, suffix))
     fp.write("\n")
 
 
