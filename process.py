@@ -25,7 +25,9 @@ conn = sqlite3.connect("db")
 conn.isolation_level = None
 
 c = conn.cursor()
-fp = open("script.bat", "w")
+batfp = open("script.bat", "w")
+shfp = open("script.sh", "w")
+shfp.write('#!/bin/sh\n')
 
 for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'):
     sha = row[0]
@@ -51,16 +53,20 @@ for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'
     kept =  files[keepidx]
     del files[keepidx]
     del dirs[keepidx]
-    fp.write("REM Original:" + kept + "\n")
+    batfp.write("REM Original: " + kept + "\n")
+    shfp.write("# Original: " + kept + "\n")
     for file in files:
         dotpos = file.rfind('.')
         if dotpos > 0:
             suffix = file[dotpos:]
         else:
             suffix = ""
-        fp.write('MOVE "{0}" Temp\\{1}{2}\n'.format(file,sha, suffix))
-    fp.write("\n")
+        batfp.write('MOVE /Y "{0}" Temp\\{1}{2}\n'.format(file,sha, suffix))
+        shfp.write('mv -f  "{0}" Temp/{1}{2}\n'.format(file,sha, suffix))
+    batfp.write("\n")
+    shfp.write("\n")
 
 
-fp.close()
+batfp.close()
+shfp.close()
 
