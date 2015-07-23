@@ -5,7 +5,7 @@ import re, os
 
 def get_keepdir_idx(dirs):
     idx = -1
-    print "=============================================================="
+    print "================ Select a keepdir  ==============="
     while (idx < 0 or idx >= len(dirs)):
         i = 0
         for dir in dirs:
@@ -13,7 +13,14 @@ def get_keepdir_idx(dirs):
             i = i + 1
 
         choice = raw_input("Keepdir: ")
-        idx = int(choice)
+        try:
+            idx = int(choice)
+            if (idx < 0 or idx >= len(dirs)):
+                raise RuntimeError("Invalid choice")
+        except:
+            print "Invalid choice. Try again."
+            idx = -1
+
     return idx
 
 def set_keepdir(cursor, path):
@@ -26,8 +33,11 @@ conn.isolation_level = None
 
 c = conn.cursor()
 batfp = open("script.bat", "w")
+batfp.write('md Temp\n')
+
 shfp = open("script.sh", "w")
 shfp.write('#!/bin/sh\n')
+shfp.write('mkdir Temp\n')
 
 for row in c.execute('SELECT sha FROM photos GROUP BY sha HAVING COUNT(sha) > 1'):
     sha = row[0]
